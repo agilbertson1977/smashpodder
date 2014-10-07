@@ -31,6 +31,7 @@
 # and set the various options. Uncomment and set to desired path.
 # Mashpodder will not create this directory for you.
 #BASEDIR="$HOME/mashpodder"
+BASEDIR="$HOME/projects/smashpodder"
 
 # RSSFILE: Location of mp.conf file.  Can be changed to another file name.
 # Default is "$BASEDIR/mp.conf".
@@ -153,10 +154,7 @@ verbose () {
     fi
 }
 
-sanity_checks () {
-    # Perform some basic checks
-    local FEED ARCHIVETYPE DLNUM DATADIR NEWPODLOG
-
+start_up () {
     # Print the date
     if verbose; then
         #echo
@@ -165,7 +163,9 @@ sanity_checks () {
         date
         echo
     fi
+}
 
+fs_sanity_checks () {
     if [ -z $BASEDIR ]; then
         crunch "\$BASEDIR has not been set.  Please review the USER \
             CONFIGURATION section at the top of mashpodder.sh and set \
@@ -179,8 +179,10 @@ sanity_checks () {
         exit 0
     fi
 
-    cd $BASEDIR
 
+}
+
+make_dirs () {
     # Make podcast directory if necessary
     if [ ! -e $PODCASTDIR ]; then
         if [ "$CREATE_PODCASTDIR" = "1" ]; then
@@ -203,6 +205,17 @@ sanity_checks () {
         fi
         mkdir -p $TMPDIR
     fi
+}
+
+sanity_checks () {
+    # Perform some basic checks
+    local FEED ARCHIVETYPE DLNUM DATADIR NEWPODLOG
+
+	fs_sanity_checks
+	
+    cd $BASEDIR
+
+	make_dirs
 
     rm -f $TEMPRSSFILE
     touch $TEMPRSSFILE

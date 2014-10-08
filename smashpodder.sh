@@ -112,11 +112,11 @@ DAILY_PLAYLIST=""
 UPDATE=""
 
 # VERBOSE: Default "" is quiet output; "1" is verbose.
-VERBOSE=""
+VERBOSE="1"
 
 # WGET_QUIET: Default is "-q" for quiet wget output; change to "" for wget
 # output.
-WGET_QUIET="-q"
+WGET_QUIET=""
 
 # WGET_TIMEOUT: Default is 30 seconds; can decrease or increase if some
 # files are cut short. Thanks to Phil Smith for the bug report.
@@ -207,33 +207,39 @@ make_dirs () {
     fi
 }
 
-sanity_checks () {
-    # Perform some basic checks
-    local FEED ARCHIVETYPE DLNUM DATADIR NEWPODLOG
+dlnum_sanity () {
+  if [[ "$1" != "none"   && "$1" != "all" && \
+        "$1" != "update" && $1 -lt 1 ]]; then
+          crunch "Something is wrong with the download type for $2. \
+                 According to $RSSFILE, it is set to $DLNUM. \
+                 It should be set to 'none', 'all', 'update', or a number \
+                 greater than zero.  Please check $RSSFILE.  Exiting"
+          exit 0
+  fi
 
-	fs_sanity_checks
-	
-    cd $BASEDIR
+}
 
-	make_dirs
+urlfix_sanity () {
+   if [[  "$1" != "1"  && "$1" != "0" ]]; then
+      crunch "Something is wrong with the URL fix type for $2. \
+              Accord to $RSSFILE, it is set to $URLFIX. \
+              It should be set to '0' (default, run URL fixup) \
+              or '1' (don't run URL fixup). Exiting;"
+      exit 0
+   fi
+}
 
-    rm -f $TEMPRSSFILE
-    touch $TEMPRSSFILE
-
-    # Make sure the mp.conf file or the file passed with -c switch exists
-    if [ ! -e "$RSSFILE" ]; then
-        crunch "The file $RSSFILE cannot be found.  Run $0 -h \
-            for usage and check the settings at the top of mashpodder.sh.\
-            Exiting."
-        exit 0
-    fi
+mpconf_sanity () {
 
     # Check the mp.conf and do some basic error checking
     while read LINE; do
+    # stdin is coming from a " < $RSSFILE" at the "done" for this "do" 
         DLNUM="none"
         FEED=$(echo $LINE | cut -f1 -d ' ')
         ARCHIVETYPE=$(echo $LINE | cut -f2 -d ' ')
         DLNUM=$(echo $LINE | cut -f3 -d ' ')
+        URLFIX=$(echo $LINE | cut -f4 -d ' ')
+        PREFIX=$(echo $LINE | cut -f5 -d ' ')
 
         # Skip blank lines and lines beginning with '#'
         if echo $LINE | grep -E '^#|^$' > /dev/null
@@ -241,14 +247,8 @@ sanity_checks () {
                 continue
         fi
 
-        if [[ "$DLNUM" != "none" && "$DLNUM" != "all" && \
-            "$DLNUM" != "update" && $DLNUM -lt 1 ]]; then
-            crunch "Something is wrong with the download type for $FEED. \
-                According to $RSSFILE, it is set to $DLNUM. \
-                It should be set to 'none', 'all', 'update', or a number \
-                greater than zero.  Please check $RSSFILE.  Exiting"
-            exit 0
-        fi
+        dlnum_sanity $DLNUM $FEED
+        urlfix_sanity $URLFIX $FEED
 
         # Check type of archiving for each feed
         if [ "$DLNUM" = "update" ]; then
@@ -276,8 +276,32 @@ sanity_checks () {
         if [ "$UPDATE" = "1" ]; then
             DLNUM="update"
         fi
-        echo "$FEED $DATADIR $DLNUM" >> $TEMPRSSFILE
+        echo "$FEED $DATADIR $DLNUM $URLFIX $PREFIX" >> $TEMPRSSFILE
     done < $RSSFILE
+}
+
+sanity_checks () {
+    # Perform some basic checks
+    local FEED ARCHIVETYPE DLNUM DATADIR NEWPODLOG
+
+    fs_sanity_checks
+
+    cd $BASEDIR
+
+    make_dirs
+
+    rm -f $TEMPRSSFILE
+    touch $TEMPRSSFILE
+
+    # Make sure the mp.conf file or the file passed with -c switch exists
+    if [ ! -e "$RSSFILE" ]; then
+        crunch "The file $RSSFILE cannot be found.  Run $0 -h \
+            for usage and check the settings at the top of mashpodder.sh.\
+            Exiting."
+        exit 0
+    fi
+
+    mpconf_sanity
 
     # Backup the $PODLOG if $PODLOG_BACKUP=1
     if [ "$PODLOG_BACKUP" = "1" ]; then
@@ -373,6 +397,8 @@ fetch_podcasts () {
         FEED=$(echo $LINE | cut -f1 -d ' ')
         DATADIR=$(echo $LINE | cut -f2 -d ' ')
         DLNUM=$(echo $LINE | cut -f3 -d ' ')
+        URLFIX=$(echo $LINE | cut -f4 -d ' ')
+        PREFIX=$(echo $LINE | cut -f5 -d ' ')
         COUNTER=0
 
         if verbose; then

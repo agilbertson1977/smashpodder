@@ -289,6 +289,16 @@ fileexistssanitycheck () {
     fi
 }
 
+dobackuppodlog () {
+    if [ "$PODLOG_BACKUP" = "1" ]; then
+        if verbose; then
+            echo "Backing up the $PODLOG file."
+        fi
+        NEWPODLOG="$PODLOG.$(date +$DATESTRING)"
+        cp $PODLOG $NEWPODLOG
+    fi
+}
+
 sanity_checks () {
     # Perform some basic checks
     local FEED ARCHIVETYPE DLNUM DATADIR NEWPODLOG
@@ -303,18 +313,12 @@ sanity_checks () {
     touch $TEMPRSSFILE
 
     # Make sure the mp.conf file or the file passed with -c switch exists
-    fileexistssanitycheck "$RSSFILE"
+    fileexistssanitycheck 
 
     mpconf_sanity
 
     # Backup the $PODLOG if $PODLOG_BACKUP=1
-    if [ "$PODLOG_BACKUP" = "1" ]; then
-        if verbose; then
-            echo "Backing up the $PODLOG file."
-        fi
-        NEWPODLOG="$PODLOG.$(date +$DATESTRING)"
-        cp $PODLOG $NEWPODLOG
-    fi
+    dobackuppodlog
 
     # Delete the temp log:
     rm -f $TEMPLOG

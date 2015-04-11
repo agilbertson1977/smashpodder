@@ -280,6 +280,15 @@ mpconf_sanity () {
     done < $RSSFILE
 }
 
+fileexistssanitycheck () {
+    if [ ! -e "$RSSFILE" ]; then
+        crunch "The file $RSSFILE cannot be found.  Run $0 -h \
+            for usage and check the settings at the top of mashpodder.sh.\
+            Exiting."
+        exit 0
+    fi
+}
+
 sanity_checks () {
     # Perform some basic checks
     local FEED ARCHIVETYPE DLNUM DATADIR NEWPODLOG
@@ -294,12 +303,7 @@ sanity_checks () {
     touch $TEMPRSSFILE
 
     # Make sure the mp.conf file or the file passed with -c switch exists
-    if [ ! -e "$RSSFILE" ]; then
-        crunch "The file $RSSFILE cannot be found.  Run $0 -h \
-            for usage and check the settings at the top of mashpodder.sh.\
-            Exiting."
-        exit 0
-    fi
+    fileexistssanitycheck "$RSSFILE"
 
     mpconf_sanity
 

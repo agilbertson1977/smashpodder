@@ -220,9 +220,9 @@ dlnum_sanity () {
 }
 
 urlfix_sanity () {
-   if [[  "$1" != "1"  && "$1" != "0" ]]; then
-      crunch "Something is wrong with the URL fix type for $2. \
-              Accord to $RSSFILE, it is set to $URLFIX. \
+   if [[  "$DOURLFIX" != "0" && "$DOURLFIX" != "1" ]]; then
+      crunch "Something is wrong with the URL fix type for $FEED. \
+              According to $RSSFILE, it is set to $DOURLFIX. \
               It should be set to '0' (default, run URL fixup) \
               or '1' (don't run URL fixup). Exiting;"
       exit 0
@@ -238,7 +238,7 @@ mpconf_sanity () {
         FEED=$(echo $LINE | cut -f1 -d ' ')
         ARCHIVETYPE=$(echo $LINE | cut -f2 -d ' ')
         DLNUM=$(echo $LINE | cut -f3 -d ' ')
-        URLFIX=$(echo $LINE | cut -f4 -d ' ')
+        DOURLFIX=$(echo $LINE | cut -f4 -d ' ')
         PREFIX=$(echo $LINE | cut -f5 -d ' ')
 
         # Skip blank lines and lines beginning with '#'
@@ -276,7 +276,10 @@ mpconf_sanity () {
         if [ "$UPDATE" = "1" ]; then
             DLNUM="update"
         fi
-        echo "$FEED $DATADIR $DLNUM $URLFIX $PREFIX" >> $TEMPRSSFILE
+        echo "$FEED $DATADIR $DLNUM $DOURLFIX $PREFIX" >> $TEMPRSSFILE
+        # echo "+++++++++++"
+        # cat $TEMPRSSFILE
+        # echo "+++++++++++"
     done < $RSSFILE
 }
 
@@ -337,12 +340,20 @@ fix_url () {
     # Take a url embedded in a feed, get the filename, and perform some
     # fixes
     local FIXURL
+    local DOFIX
 
     FIXURL=$1
+    DOFIX=$2
+
+    echo "========> Processing $FIXURL with DOURLFIX = $DOFIX"
 
     # Get the filename
     FIRSTFILENAME=$(echo $FIXURL|awk -F / '{print $NF}')
-    FILENAME=$(echo $FIRSTFILENAME|awk -F "?" '{print $1}')
+    if [[ $DOFIX == "1" ]]; then
+      FILENAME=$(echo $FIRSTFILENAME|awk -F "?" '{print $1}')
+    else
+      FILENAME=$(echo $FIRSTFILENAME)
+    fi
 
     # Remove parentheses in filenames
     FILENAME=$(echo $FILENAME | tr -d "()")
@@ -380,8 +391,11 @@ fix_url () {
         return
     fi
 
-    # Remove question marks at end
-    FILENAME=$(echo $FILENAME | sed -e 's/?.*$//')
+    if [[ $DOFIX == "1" ]]; then
+      # Remove question marks at end
+      echo "Doing URL fix, DOURLFIX = $DOFIX"
+      FILENAME=$(echo $FILENAME | sed -e 's/?.*$//')
+    fi
 }
 
 check_directory () {
@@ -396,7 +410,7 @@ check_directory () {
 
 fetch_podcasts () {
     # This is the main loop
-    local LINE FEED DATADIR DLNUM COUNTER FILE URL FILENAME DLURL
+    local LINE FEED DATADIR DLNUM COUNTER FILE URL FILENAME DLURL URLFIX
 
     # Read the mp.conf file and wget any url not already in the
     # podcast.log file:
@@ -408,6 +422,7 @@ fetch_podcasts () {
         URLFIX=$(echo $LINE | cut -f4 -d ' ')
         PREFIX=$(echo $LINE | cut -f5 -d ' ')
         COUNTER=0
+        echo "============> For feed $FEED, URLFIX = $URLFIX"
 
         if verbose; then
             if [ "$DLNUM" = "all" ]; then
@@ -446,7 +461,7 @@ fetch_podcasts () {
                 break
             fi
             DLURL=$($CURL -s -I -L -w %{url_effective} --url $URL | tail -n 1)
-            fix_url $DLURL
+            fix_url $DLURL $URLFIX
             echo $FILENAME >> $TEMPLOG
             if verbose; then
                 echo -n "Found $FILENAME in feed "

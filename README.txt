@@ -1,18 +1,13 @@
-mashpodder
+smashpodder
 
-podcatching client based on BashPodder
+podcatching client based on MashPodder, and eaerlier, BashPodder
 
-Starting in 2005, I have maintained a 'user-contributed' version of
-BashPodder, the great podcatcher originally written by Linc Fessenden. My
-mashup has become pretty popular, and I have maintained five separate releases
-since that time.
+This is Andrew Gilbertson fork of Chess Griffin's podcast downloading client,
+MashPodder. Many of the updates are simply refactoring to make the code
+easier to deal with; however, see the end of this README for details about
+what's changed. 
 
-I ended up rewriting much of my original mashup and so when version 0.6 was
-ready, I decided to rename my version 'mashpodder' (as it is a mashup of
-BashPodder and other stuff) and put it on Google Code.  I eventually moved it
-to GitHub.
-
-Mashpodder allows the user to download podcast episodes. The user can choose
+Smashpodder allows the user to download podcast episodes. The user can choose
 to save these episodes in a named directory (i.e. separate directory per feed)
 or in a date-based directory, so the most recent episodes are in one folder.
 Or, the user can combine this by having some podcasts in a named directory and
@@ -40,3 +35,15 @@ basically, if you want something stable, use the latest release.  If you
 want the latest-and-greatest or want to help test, use the master branch.
 
 Enjoy!
+
+Here's the bit about Andrew's updates:
+1. The ability to choose whether or not to "fix" the filename that is
+   provided by the RSS feed.  The fact that Scientific American was providing
+   filenames that were "podcast.mp3?fileID=$UUID" was causing the MashPodder
+   to always see these as just "podcast.mp3" and not download it as that name
+   was already in the log as having been previously downloaded.
+2. Prepending a source name to name of the downloaded file. This isn't
+   at all useful to getting podcasts to download, but it does allow the user
+   to figure out what's the source of a file with a funny-looking filename is.
+
+

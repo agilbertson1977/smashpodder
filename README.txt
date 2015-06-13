@@ -2,7 +2,7 @@ smashpodder
 
 podcatching client based on MashPodder, and eaerlier, BashPodder
 
-This is Andrew Gilbertson fork of Chess Griffin's podcast downloading client,
+This is Andrew Gilbertson's fork of Chess Griffin's podcast downloading client,
 MashPodder. Many of the updates are simply refactoring to make the code
 easier to deal with; however, see the end of this README for details about
 what's changed. 

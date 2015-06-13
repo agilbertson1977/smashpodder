@@ -220,7 +220,7 @@ dlnum_sanity () {
 }
 
 urlfix_sanity () {
-   if [[  "$DOURLFIX" != "0" && "$DOURLFIX" != "1" ]]; then
+   if [[  "$DOURLFIX" != "fix" && "$DOURLFIX" != "nofix" ]]; then
       crunch "Something is wrong with the URL fix type for $FEED. \
               According to $RSSFILE, it is set to $DOURLFIX. \
               It should be set to '0' (default, run URL fixup) \
@@ -349,7 +349,7 @@ fix_url () {
 
     # Get the filename
     FIRSTFILENAME=$(echo $FIXURL|awk -F / '{print $NF}')
-    if [[ $DOFIX == "1" ]]; then
+    if [[ $DOFIX == "fix" ]]; then
       FILENAME=$(echo $FIRSTFILENAME|awk -F "?" '{print $1}')
     else
       FILENAME=$(echo $FIRSTFILENAME)
@@ -391,7 +391,7 @@ fix_url () {
         return
     fi
 
-    if [[ $DOFIX == "1" ]]; then
+    if [[ $DOFIX == "fix" ]]; then
       # Remove question marks at end
       echo "Doing URL fix, DOURLFIX = $DOFIX"
       FILENAME=$(echo $FILENAME | sed -e 's/?.*$//')
@@ -488,7 +488,12 @@ fetch_podcasts () {
                     $WGET $WGET_QUIET -c -T $WGET_TIMEOUT -O "$FILENAME" \
                         "$DLURL"
                     ((NEWDL=NEWDL+1))
-                    mv "$FILENAME" $PODCASTDIR/$DATADIR/"$FILENAME"
+                    if [ "$URLFIX" = "nofix" ]; then
+                      FINALFILENAME=$(echo $FILENAME | sed -e s/\.mp3// | sed -e /\?// | sed -e s/$/\.mp3/)
+                    else
+                      FINALFILENAME=$FILENAME
+                    fi
+                    mv "$FILENAME" $PODCASTDIR/$DATADIR/"$FINALFILENAME"
                     cd $BASEDIR
                     if [[ -n "$M3U" && -n "$DAILY_PLAYLIST" ]]; then
                         if verbose; then

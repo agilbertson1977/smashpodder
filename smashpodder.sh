@@ -489,11 +489,11 @@ fetch_podcasts () {
                         "$DLURL"
                     ((NEWDL=NEWDL+1))
                     if [ "$URLFIX" = "nofix" ]; then
-                      FINALFILENAME=$(echo $FILENAME | sed -e s/\.mp3// | sed -e /\?// | sed -e s/$/\.mp3/)
+                      FINALFILENAME=$(echo $FILENAME | sed -e s/\.mp3// | sed -e s/\?// | sed -e s/$/\.mp3/)
                     else
                       FINALFILENAME=$FILENAME
                     fi
-                    mv "$FILENAME" $PODCASTDIR/$DATADIR/"$FINALFILENAME"
+                    mv "$FILENAME" $PODCASTDIR/$DATADIR/"$PREFIX $FINALFILENAME"
                     cd $BASEDIR
                     if [[ -n "$M3U" && -n "$DAILY_PLAYLIST" ]]; then
                         if verbose; then

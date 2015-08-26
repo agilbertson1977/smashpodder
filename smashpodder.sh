@@ -43,7 +43,7 @@ RSSFILE="$BASEDIR/mp.conf"
 # reporting the issues that led to these directory changes.  Mashpodder will
 # create this directory if it does not exist unless $CREATE_PODCASTDIR is
 # set to "".
-PODCASTDIR="$BASEDIR/podcasts"
+PODCASTDIR="$BASEDIR"
 
 # CREATE_PODCASTDIR: Default "1" will create the directory for you if it
 # does not exist; "" means to fail and exit if $PODCASTDIR does not exist.
@@ -112,7 +112,7 @@ DAILY_PLAYLIST=""
 UPDATE=""
 
 # VERBOSE: Default "" is quiet output; "1" is verbose.
-VERBOSE="1"
+VERBOSE=""
 
 # WGET_QUIET: Default is "-q" for quiet wget output; change to "" for wget
 # output.
@@ -220,11 +220,11 @@ dlnum_sanity () {
 }
 
 urlfix_sanity () {
-   if [[  "$DOURLFIX" != "fix" && "$DOURLFIX" != "nofix" ]]; then
+   if [[  "$DOURLFIX" != "dofix" && "$DOURLFIX" != "nofix" ]]; then
       crunch "Something is wrong with the URL fix type for $FEED. \
               According to $RSSFILE, it is set to $DOURLFIX. \
-              It should be set to '0' (default, run URL fixup) \
-              or '1' (don't run URL fixup). Exiting;"
+              It should be set to 'dofix' (default, run URL fixup) \
+              or 'nofix' (don't run URL fixup). Exiting;"
       exit 0
    fi
 }
@@ -240,6 +240,7 @@ mpconf_sanity () {
         DLNUM=$(echo $LINE | cut -f3 -d ' ')
         DOURLFIX=$(echo $LINE | cut -f4 -d ' ')
         PREFIX=$(echo $LINE | cut -f5 -d ' ')
+        #echo "sanity PREFIX = $PREFIX"
 
         # Skip blank lines and lines beginning with '#'
         if echo $LINE | grep -E '^#|^$' > /dev/null
@@ -276,10 +277,10 @@ mpconf_sanity () {
         if [ "$UPDATE" = "1" ]; then
             DLNUM="update"
         fi
-        echo "$FEED $DATADIR $DLNUM $DOURLFIX $PREFIX" >> $TEMPRSSFILE
-        # echo "+++++++++++"
-        # cat $TEMPRSSFILE
-        # echo "+++++++++++"
+        echo "$FEED $DATADIR $DLNUM $DOURLFIX $PREFIX extradata" >> $TEMPRSSFILE
+        #echo "+++++++++++"
+        #cat $TEMPRSSFILE
+        #echo "+++++++++++"
     done < $RSSFILE
 }
 
@@ -345,11 +346,9 @@ fix_url () {
     FIXURL=$1
     DOFIX=$2
 
-    echo "========> Processing $FIXURL with DOURLFIX = $DOFIX"
-
     # Get the filename
     FIRSTFILENAME=$(echo $FIXURL|awk -F / '{print $NF}')
-    if [[ $DOFIX == "fix" ]]; then
+    if [[ $DOFIX == "nofix" ]]; then
       FILENAME=$(echo $FIRSTFILENAME|awk -F "?" '{print $1}')
     else
       FILENAME=$(echo $FIRSTFILENAME)
@@ -391,9 +390,8 @@ fix_url () {
         return
     fi
 
-    if [[ $DOFIX == "fix" ]]; then
+    if [[ $DOFIX == "nofix" ]]; then
       # Remove question marks at end
-      echo "Doing URL fix, DOURLFIX = $DOFIX"
       FILENAME=$(echo $FILENAME | sed -e 's/?.*$//')
     fi
 }
@@ -410,7 +408,7 @@ check_directory () {
 
 fetch_podcasts () {
     # This is the main loop
-    local LINE FEED DATADIR DLNUM COUNTER FILE URL FILENAME DLURL URLFIX
+    local LINE FEED DATADIR DLNUM COUNTER FILE URL FILENAME DLURL URLFIX PREFIX
 
     # Read the mp.conf file and wget any url not already in the
     # podcast.log file:
@@ -421,8 +419,9 @@ fetch_podcasts () {
         DLNUM=$(echo $LINE | cut -f3 -d ' ')
         URLFIX=$(echo $LINE | cut -f4 -d ' ')
         PREFIX=$(echo $LINE | cut -f5 -d ' ')
+        #echo "fetch PREFIX = $PREFIX"
+        #echo "LINE = $LINE"
         COUNTER=0
-        echo "============> For feed $FEED, URLFIX = $URLFIX"
 
         if verbose; then
             if [ "$DLNUM" = "all" ]; then
@@ -461,6 +460,7 @@ fetch_podcasts () {
                 break
             fi
             DLURL=$($CURL -s -I -L -w %{url_effective} --url $URL | tail -n 1)
+            echo \$DLURL = $DLURL
             fix_url $DLURL $URLFIX
             echo $FILENAME >> $TEMPLOG
             if verbose; then
@@ -485,15 +485,16 @@ fetch_podcasts () {
                         echo "$FILENAME downloaded to $DATADIR" >> $SUMMARYLOG
                     fi
                     cd $TMPDIR
-                    $WGET $WGET_QUIET -c -T $WGET_TIMEOUT -O "$FILENAME" \
-                        "$DLURL"
+                    $WGET $WGET_QUIET -c -T $WGET_TIMEOUT -O "$FILENAME" "$DLURL"
                     ((NEWDL=NEWDL+1))
-                    if [ "$URLFIX" = "nofix" ]; then
+                    if [ "$URLFIX" = "dofix" ]; then
                       FINALFILENAME=$(echo $FILENAME | sed -e s/\.mp3// | sed -e s/\?// | sed -e s/$/\.mp3/)
                     else
                       FINALFILENAME=$FILENAME
                     fi
-                    mv "$FILENAME" $PODCASTDIR/$DATADIR/"$PREFIX $FINALFILENAME"
+                    FINALFILENAME="$PREFIX"_"$FINALFILENAME"
+                    echo "Moving $FILENAME to $PODCASTDIR/$DATADIR/$FINALFILENAME"
+                    mv "$FILENAME" $PODCASTDIR/$DATADIR/"$FINALFILENAME"
                     cd $BASEDIR
                     if [[ -n "$M3U" && -n "$DAILY_PLAYLIST" ]]; then
                         if verbose; then
@@ -561,6 +562,8 @@ final_cleanup () {
             rm -f $SUMMARYLOG
         fi
         echo "################################"
+        echo -n "Mashpodder completed at "
+        echo $(date)
     fi
     # These next 2 lines were moved here so if the user kills the program
     # with ctrl-C (see the trap code, below), they will also cd to cwd
@@ -641,5 +644,6 @@ done
 sanity_checks
 fetch_podcasts
 final_cleanup
+echo Completed at $(date)
 
 exit 0
